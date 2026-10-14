@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- Photo Background Removal Test - Built with the help of Claude AI -->
+<html>
+<!-- viewport line makes the page fit on a phone screen -->
+<!-- basic styling: images side by side, gray background behind the cutout so you can see what got removed -->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background Removal Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    img { width: 45%; border: 1px solid #ccc; }
+    .result { background: #eee; }
+  </style>
+</head>
+
+<!-- file picker, accept="image/*" means only images can be chosen (on iPhone it lets you pick from photos or take one) -->
+<body>
+  <h1>Background Removal Test</h1>
+  <p>Pick a photo of a clothing item.</p>
+
+  <input type="file" id="photo" accept="image/*">
+  <!-- if this never changes to "Ready", the library didn't load -->
+  <p id="status">Loading...</p>
+
+  <div>
+<!-- "before" shows the original photo, "after" shows the photo with the background removed -->
+    <img id="before">
+    <img id="after" class="result">
+  </div>
+
+<!-- list of every photo I test and how long it took, so I can compare them for my proposal -->
+  <h3>Results</h3>
+  <ul id="results"></ul>
+
+  <script type="module">
+
+// loads the @imgly/background-removal library from a CDN so I don't have to install anything
+// it runs the AI model in the browser, so photos never get uploaded to a server
+    import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.8/+esm";
+
+// grab the file input and the status text from the page so I can use them in the code
+    const input = document.getElementById("photo");
+    const status = document.getElementById("status");
+    status.textContent = "Ready. Pick a photo.";
+
+// this runs every time a new photo is picked
+// it's async because removing the background takes a few seconds and I need to wait for it
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+// show the original photo right away and clear the old result
+      document.getElementById("before").src = URL.createObjectURL(file);
+      document.getElementById("after").src = "";
+      status.textContent = "Removing background... (first time is slow, it downloads the model)";
+
+// save the time before starting so I can measure how long background removal takes
+      const start = Date.now();
+      try {
+// copy the photo into a plain image blob first (iPhone can't pass the original file object along)
+        const imageData = new Blob([await file.arrayBuffer()], { type: file.type });
+
+// the main test: removes the background and returns a new image (a PNG with a transparent background)
+// the first run is slower because it has to download the model
+// "isnet_quint8" is the smallest model (about 40 MB) so it's easier on a phone
+        const blob = await removeBackground(imageData, { model: "isnet_quint8" });
+
+// work out how long it took in seconds (Date.now() is in milliseconds, so divide by 1000)
+        const seconds = ((Date.now() - start) / 1000).toFixed(1);
+
+        document.getElementById("after").src = URL.createObjectURL(blob);
+        status.textContent = "Done in " + seconds + " seconds";
+
+// add this photo's time to the results list
+        const li = document.createElement("li");
+        li.textContent = file.name + ": " + seconds + " seconds";
+        document.getElementById("results").appendChild(li);
+// if something goes wrong (bad connection, unsupported image) show the error instead of crashing
+      } catch (err) {
+        status.textContent = "Error: " + err;
+      }
+    });
+  </script>
+</body>
+</html>
