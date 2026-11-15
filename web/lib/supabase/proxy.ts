@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Pages anyone can open without logging in. Everything else sends
 // logged-out visitors to /login.
-const PUBLIC_PATHS = ['/login', '/signup', '/auth', '/setup-check']
+const PUBLIC_PATHS = ['/login', '/signup', '/auth']
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
